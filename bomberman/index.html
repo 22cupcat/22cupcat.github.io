@@ -12,20 +12,83 @@
 <body>
 	<canvas id="canvas"></canvas>
 	<script>
+	//global settings
 	var settings = {
-		canvas: {width: 720, height: 540},
-		grid: {size: 30}
+		canvas: {width: 980, height: 560},
+		grid: {size: 70}
 	};
+
+	//canvas
 	var canvas = document.getElementById("canvas");
 	    canvas.width = settings.canvas.width;
 	    canvas.height = settings.canvas.height;
 	var ctx = canvas.getContext("2d");
+
+	//grid
 	var gridScale = {row: null, col: null};
 	    gridScale.row = settings.canvas.height / settings.grid.size;
 	    gridScale.col = settings.canvas.width / settings.grid.size;
 
+	//images
+	var imgToLoad = [
+		"/tile/default.png",	//default tile image
+		"/tile/box.png",
+		"/tile/box2.png",
+		"/tile/fence.png"
+	];
+	var imgReady = [];			//images that are loaded
+	var tileImgIndex = {defaultTile: 0, box: 1, box2: 2, fence: 3};
+
+	//map
+	var map = [];
+
+	//obstacles
+	function obs(a, b, c, d) {	//obstacle object
+		this.row = a;
+		this.col = b;
+		this.canEliminate = c;
+		this.eliminated = false;
+		this.imgSrc = d;
+	}
+	var obsList = [];
+	obsList.push(new obs(2, 5, true, "box"));
+	obsList.push(new obs(3, 3, true, "box2"));
+	obsList.push(new obs(5, 2, false, "fence"));
+
+	/**
+	 * initialize map
+	 */
+	for(var r = 0; r < gridScale.row; r++) {
+		map[r] = [];
+		for(var c = 0; c < gridScale.col; c++)
+			map[r][c] = {type: "empty", img: "default"}
+	}
+
+	/**
+	 * load images
+	 */
+	var loadImgCount = 0;
+	var loadImgTotal = imgToLoad.length;
+
+	for(var i = 0; i < loadImgTotal; i++) {
+		var img = new Image();
+		img.onload = function() {
+			loadImgCount++;
+			if(loadImgCount == loadImgTotal)
+				draw();
+		};
+		img.src = "img" + imgToLoad[i];
+		imgReady[i] = img;
+	}
+
+	/**
+	 * functions related to drawing
+	 */
 	function draw() {
 		drawGrid();
+		drawDefaultTile();
+		//drawOtherTile();
+		drawObs();
 	}
 
 	function drawGrid() {
@@ -41,7 +104,21 @@
 		ctx.stroke();
 	}
 
-	draw();
+	function drawDefaultTile() {
+		for(var r = 0; r < gridScale.row; r++)
+			for(var c = 0; c < gridScale.col; c++)
+				ctx.drawImage(imgReady[tileImgIndex.defaultTile], getColCoord(c), getRowCoord(r));
+	}
+
+	function drawObs() {
+		var src, x, y;
+		for(var i = 0; i < obsList.length; i++) {
+			src = obsList[i].imgSrc;
+			x = getRowCoord(obsList[i].col);
+			y = getRowCoord(obsList[i].row);
+			ctx.drawImage(imgReady[tileImgIndex[src]], x, y);
+		}
+	}
 
 	/**
 	 * tools
