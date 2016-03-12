@@ -94,18 +94,10 @@ for(var i = 0; i < loadImgTotal; i++) {
  * functions related to drawing
  */
 function draw() {
-	drawDebugBackground();
+	drawDefaultTile();
 	drawGrid();
-	//drawDefaultTile();
 	//drawOtherTile();
 	drawObs();
-}
-
-function drawDebugBackground() {
-	ctx.beginPath();
-	ctx.rect(0, 0, settings.canvas.width, settings.canvas.height);
-	ctx.fillStyle = "gray";
-	ctx.fill();
 }
 
 function drawGrid() {
@@ -118,6 +110,9 @@ function drawGrid() {
 		ctx.moveTo(getColCoord(c), 0);
 		ctx.lineTo(getColCoord(c), canvas.height);
 	}
+	ctx.lineWidth = 0.5;
+	ctx.setLineDash([2, 2]);
+	ctx.strokeStyle = "rgba(0, 0, 0, 0.5)";
 	ctx.stroke();
 }
 
@@ -247,10 +242,14 @@ function updatePlayer() {
 
 	//draw player
 	ctx.beginPath();
+	ctx.rect(player.x, player.y, settings.grid.size, settings.grid.size);
+	ctx.lineWidth = 1;
+	ctx.setLineDash([]);
+	ctx.strokeStyle = "rgba(255, 0, 0, 0.5)";
+	ctx.stroke();
 	ctx.drawImage(imgReady[imgIndex["player"]],
-		player.x + (settings.player.width - settings.grid.size) / 2,
+		player.x + (settings.grid.size - settings.player.width) / 2,
 		player.y + settings.grid.size - settings.player.height);
-	ctx.fill();
 
 	setTimeout(updatePlayer, 10);
 }
