@@ -3,7 +3,8 @@ var settings = {
 	canvas: {width: 980, height: 560},
 	grid: {size: 70},
 	player: {width: 66, height: 92},
-	friction: 0.9
+	deltaSpeed: 5,
+	friction: 0.85
 };
 
 //canvas
@@ -149,21 +150,21 @@ var player = {
 function updatePlayer() {
 	if(keys[38] && player.velY > -player.maxSpeed) {	//key up
 		player.velX = 0;
-		player.velY--;
+		player.velY -= settings.deltaSpeed;
 		player.direction = "up";
 	}
 	if(keys[39] && player.velX < player.maxSpeed) {		//key right
-		player.velX++;
+		player.velX += settings.deltaSpeed;
 		player.velY = 0;
 		player.direction = "right";
 	}
 	if(keys[40] && player.velY < player.maxSpeed) {		//key down
 		player.velX = 0;
-		player.velY++;
+		player.velY += settings.deltaSpeed;
 		player.direction = "down";
 	}
 	if(keys[37] && player.velX > -player.maxSpeed) {	//key left
-		player.velX--;
+		player.velX -= settings.deltaSpeed;
 		player.velY = 0;
 		player.direction = "left";
 	}
@@ -187,7 +188,7 @@ function updatePlayer() {
 	}
 	if(isObstacle(player.x + settings.grid.size - 1, player.y)) {
 		if(player.direction == "right") {
-			player.x = settings.grid.size * (getCol(player.x)) + 0.9;
+			player.x = settings.grid.size * (getCol(player.x)) + 0.99;
 			player.velX = 0;
 		}
 		if(player.direction == "up") {
@@ -202,18 +203,18 @@ function updatePlayer() {
 			player.velX = 0;
 		}
 		if(player.direction == "down") {
-			player.y = settings.grid.size * (getRow(player.y)) + 0.9;
+			player.y = settings.grid.size * (getRow(player.y)) + 0.99;
 			player.velY = 0;
 		}
 		log("collision: bottom-left");
 	}
 	if(isObstacle(player.x + settings.grid.size - 1, player.y + settings.grid.size - 1)) {
 		if(player.direction == "right") {
-			player.x = settings.grid.size * (getCol(player.x)) + 0.9;
+			player.x = settings.grid.size * (getCol(player.x)) + 0.99;
 			player.velX = 0;
 		}
 		if(player.direction == "down") {
-			player.y = settings.grid.size * (getRow(player.y)) + 0.9;
+			player.y = settings.grid.size * (getRow(player.y)) + 0.99;
 			player.velY = 0;
 		}
 		log("collision: bottom-right");
