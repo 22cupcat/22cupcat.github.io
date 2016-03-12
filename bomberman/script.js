@@ -187,7 +187,7 @@ function updatePlayer() {
 	}
 	if(isObstacle(player.x + settings.grid.size - 1, player.y)) {
 		if(player.direction == "right") {
-			player.x = settings.grid.size * (getCol(player.x));
+			player.x = settings.grid.size * (getCol(player.x)) + 0.9;
 			player.velX = 0;
 		}
 		if(player.direction == "up") {
@@ -202,18 +202,18 @@ function updatePlayer() {
 			player.velX = 0;
 		}
 		if(player.direction == "down") {
-			player.y = settings.grid.size * (getRow(player.y));
+			player.y = settings.grid.size * (getRow(player.y)) + 0.9;
 			player.velY = 0;
 		}
 		log("collision: bottom-left");
 	}
 	if(isObstacle(player.x + settings.grid.size - 1, player.y + settings.grid.size - 1)) {
 		if(player.direction == "right") {
-			player.x = settings.grid.size * (getCol(player.x));
+			player.x = settings.grid.size * (getCol(player.x)) + 0.9;
 			player.velX = 0;
 		}
 		if(player.direction == "down") {
-			player.y = settings.grid.size * (getRow(player.y));
+			player.y = settings.grid.size * (getRow(player.y)) + 0.9;
 			player.velY = 0;
 		}
 		log("collision: bottom-right");
