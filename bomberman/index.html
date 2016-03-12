@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="UTF-8">
+	<title>Bomberman</title>
+	<style>
+	canvas {
+		border: 1px solid black;
+	}
+	</style>
+</head>
+<body>
+	<canvas id="canvas"></canvas>
+	<script>
+	var settings = {
+		canvas: {width: 720, height: 540},
+		grid: {size: 30}
+	};
+	var canvas = document.getElementById("canvas");
+	    canvas.width = settings.canvas.width;
+	    canvas.height = settings.canvas.height;
+	var ctx = canvas.getContext("2d");
+	var gridScale = {row: null, col: null};
+	    gridScale.row = settings.canvas.height / settings.grid.size;
+	    gridScale.col = settings.canvas.width / settings.grid.size;
+
+	function draw() {
+		drawGrid();
+	}
+
+	function drawGrid() {
+		ctx.beginPath();
+		for(var r = 1; r < gridScale.row; r++) {
+			ctx.moveTo(0, getRowCoord(r));
+			ctx.lineTo(canvas.width, getRowCoord(r));
+		}
+		for(var c = 1; c < gridScale.col; c++) {
+			ctx.moveTo(getColCoord(c), 0);
+			ctx.lineTo(getColCoord(c), canvas.height);
+		}
+		ctx.stroke();
+	}
+
+	draw();
+
+	/**
+	 * tools
+	 */
+	function getRowCoord(row) {return settings.grid.size * row; }
+	function getColCoord(col) {return settings.grid.size * col; }
+	</script>
+</body>
+</html>
