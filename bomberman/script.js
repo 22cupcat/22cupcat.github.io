@@ -1,6 +1,6 @@
-/*
+/**
  * todo:
- * add the function of putting bombs
+ * restriction of the number of bombs
  * add player-walking animation
  */
 
@@ -8,11 +8,12 @@
 var settings = {
 	canvas: {width: 980, height: 560},
 	grid: {size: 70},
-	movement: {deltaSpeed: 5, friction: 0.85},
+	movement: {deltaSpeed: 10, friction: 0.1},
 	player: {
 		img: {width: 66, height: 92},
 		size: 66
-	}
+	},
+	bomb: {countdown: 3000}
 }
 
 //canvas
@@ -33,22 +34,24 @@ var keys = [];
 var imgSrcList = [
 	"/player/player.png",
 	"/bg.png",				//default background image
+	"/item/bomb.png",
 	"/obs/box.png",
 	"/obs/box2.png",
 	"/obs/fence.png",
-	"/tile/stone.png"
+	"/tile/grass.png"
 ];
 var imgReady = [];			//images that are loaded
 var imgIndex = {
 	player: 0,
 	background: 1,
+	bomb: 2,
 	obstacle: {
-		box: 2,
-		box2: 3,
-		fence: 4
+		box: 3,
+		box2: 4,
+		fence: 5
 	},
 	tile: {
-		stone: 5
+		grass: 6
 	}
 };
 
@@ -66,9 +69,8 @@ var obsList = [];
     obsList.push(new obs("box", 2, 8, true));
     obsList.push(new obs("box2", 3, 4, true));
     obsList.push(new obs("box2", 4, 2, true));
-    obsList.push(new obs("fence", 4, 3, false));
+    obsList.push(new obs("fence", 4, 4, false));
 var isPassableMap = [];
-
 for(var r = 0; r < gridScale.row; r++) {
 	isPassableMap[r] = [];
 	for(var c = 0; c < gridScale.col; c++)
@@ -88,12 +90,30 @@ function tile(type, row, col) {	//tile object
 	this.col = col;
 }
 var tileList = [];
-    tileList.push(new tile("stone", 4, 1));
-    tileList.push(new tile("stone", 4, 2));
-    tileList.push(new tile("stone", 4, 3));
-    tileList.push(new tile("stone", 5, 1));
-    tileList.push(new tile("stone", 5, 2));
-    tileList.push(new tile("stone", 5, 3));
+    tileList.push(new tile("grass", 1, 1));
+    tileList.push(new tile("grass", 1, 2));
+    tileList.push(new tile("grass", 1, 3));
+    tileList.push(new tile("grass", 2, 1));
+    tileList.push(new tile("grass", 2, 2));
+    tileList.push(new tile("grass", 2, 3));
+
+//bomb
+function bomb(row, col) {
+	this.row = row;
+	this.col = col;
+	setTimeout(function () {
+		bombQueue.shift();
+		haveBombMap[row][col] = false;
+	}, settings.bomb.countdown);
+}
+
+var haveBombMap = [];
+for(var r = 0; r < gridScale.row; r++) {
+	haveBombMap[r] = [];
+	for(var c = 0; c < gridScale.col; c++)
+		haveBombMap[r][c] = false;
+}
+var bombQueue = [];
 
 //player
 var player = {
@@ -144,11 +164,14 @@ function render() {
 		player.velX -= settings.movement.deltaSpeed;
 		player.velY = 0;
 	}
-	/*
-	if(key[32] && player is able to put a bomb) {
-		putBomb(player.posX, player.posY);
+	if(keys[32]) {	//put a bomb
+		var playerCenterRow = getRow(player.posY + settings.player.size / 2);
+		var playerCenterCol = getCol(player.posX + settings.player.size / 2);
+		if(!haveBomb(playerCenterRow, playerCenterCol)) {
+			haveBombMap[playerCenterRow][playerCenterCol] = true;
+			bombQueue.push(new bomb(playerCenterRow, playerCenterCol));
+		}
 	}
-	*/
 
 	player.posX += player.velX;
 	player.posY += player.velY;
@@ -179,8 +202,9 @@ function render() {
 
 	drawBackground();
 	drawTile();
-	drawObstacle();
 	drawGrid();
+	drawBomb();
+	drawObstacle();
 	drawPlayer();
 
 	setTimeout(render, 10);
@@ -190,6 +214,16 @@ function drawBackground() {
 	for(var r = 0; r < gridScale.row; r++)
 		for(var c = 0; c < gridScale.col; c++)
 			ctx.drawImage(imgReady[imgIndex.background], getColCoord(c), getRowCoord(r));
+}
+
+function drawTile() {
+	var tileType, x, y;
+	for(var i = 0; i < tileList.length; i++) {
+		tileType = tileList[i].type;
+		x = getRowCoord(tileList[i].col);
+		y = getRowCoord(tileList[i].row);
+		ctx.drawImage(imgReady[imgIndex.tile[tileType]], x, y);
+	}
 }
 
 function drawGrid() {
@@ -208,13 +242,10 @@ function drawGrid() {
 	ctx.stroke();
 }
 
-function drawTile() {
-	var tileType, x, y;
-	for(var i = 0; i < tileList.length; i++) {
-		tileType = tileList[i].type;
-		x = getRowCoord(tileList[i].col);
-		y = getRowCoord(tileList[i].row);
-		ctx.drawImage(imgReady[imgIndex.tile[tileType]], x, y);
+function drawBomb() {
+	for(var i = 0; i < bombQueue.length; i++) {
+		var bomb = bombQueue[i];
+		ctx.drawImage(imgReady[imgIndex["bomb"]], getColCoord(bomb.col), getRowCoord(bomb.row));
 	}
 }
 
@@ -269,3 +300,5 @@ function isPassable(x, y) {
 		return false;
 	return isPassableMap[getRow(y)][getCol(x)];
 }
+
+function haveBomb(row, col) {return haveBombMap[row][col]; }
