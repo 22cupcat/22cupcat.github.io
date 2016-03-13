@@ -1,3 +1,9 @@
+/*
+ * todo:
+ * add the function of putting bombs
+ * add player-walking animation
+ */
+
 //settings
 var settings = {
 	canvas: {width: 980, height: 560},
@@ -138,6 +144,12 @@ function render() {
 		player.velX -= settings.movement.deltaSpeed;
 		player.velY = 0;
 	}
+	/*
+	if(key[32] && player is able to put a bomb) {
+		putBomb(player.posX, player.posY);
+	}
+	*/
+
 	player.posX += player.velX;
 	player.posY += player.velY;
 	player.velX *= settings.movement.friction;
@@ -168,7 +180,7 @@ function render() {
 	drawBackground();
 	drawTile();
 	drawObstacle();
-	//drawGrid();
+	drawGrid();
 	drawPlayer();
 
 	setTimeout(render, 10);
