@@ -1,11 +1,13 @@
-//global settings
+//settings
 var settings = {
 	canvas: {width: 980, height: 560},
 	grid: {size: 70},
-	player: {width: 66, height: 92},
-	deltaSpeed: 5,
-	friction: 0.85
-};
+	movement: {deltaSpeed: 5, friction: 0.85},
+	player: {
+		img: {width: 66, height: 92},
+		size: 66
+	}
+}
 
 //canvas
 var canvas = document.getElementById("canvas");
@@ -18,86 +20,164 @@ var gridScale = {row: null, col: null};
     gridScale.row = settings.canvas.height / settings.grid.size;
     gridScale.col = settings.canvas.width / settings.grid.size;
 
+//key status
+var keys = [];
+
 //images
-var imgToLoad = [
+var imgSrcList = [
 	"/player/player.png",
-	"/tile/default.png",	//default tile image
-	"/tile/box.png",
-	"/tile/box2.png",
-	"/tile/fence.png"
+	"/bg.png",				//default background image
+	"/obs/box.png",
+	"/obs/box2.png",
+	"/obs/fence.png",
+	"/tile/stone.png"
 ];
 var imgReady = [];			//images that are loaded
 var imgIndex = {
 	player: 0,
-	defaultTile: 1,
-	box: 2,
-	box2: 3,
-	fence: 4
+	background: 1,
+	obstacle: {
+		box: 2,
+		box2: 3,
+		fence: 4
+	},
+	tile: {
+		stone: 5
+	}
 };
 
-//map
-var map = [];
-
-//obstacles
-function obs(a, b, c, d) {	//obstacle object
-	this.row = a;
-	this.col = b;
-	this.canEliminate = c;
-	this.eliminated = false;
-	this.imgSrc = d;
+//obstacle
+function obs(type, row, col, destroyable) {	//obstacle object
+	this.type = type;
+	this.row = row;
+	this.col = col;
+	this.destroyable = destroyable;
+	this.beDestroyed = false;
 }
+
 var obsList = [];
-obsList.push(new obs(2, 5, true, "box"));
-obsList.push(new obs(2, 6, true, "box"));
-obsList.push(new obs(3, 3, true, "box2"));
-obsList.push(new obs(4, 3, true, "box2"));
-obsList.push(new obs(5, 2, false, "fence"));
+    obsList.push(new obs("box", 1, 10, true));
+    obsList.push(new obs("box", 2, 8, true));
+    obsList.push(new obs("box2", 3, 4, true));
+    obsList.push(new obs("box2", 4, 2, true));
+    obsList.push(new obs("fence", 4, 3, false));
+var isPassableMap = [];
+
+for(var r = 0; r < gridScale.row; r++) {
+	isPassableMap[r] = [];
+	for(var c = 0; c < gridScale.col; c++)
+		isPassableMap[r][c] = true;
+}
+
+for(var i = 0; i < obsList.length; i++) {
+	var obs = obsList[i];
+	if(!obs.beDestroyed)
+		isPassableMap[obs.row][obs.col] = false;
+}
+
+//tile
+function tile(type, row, col) {	//tile object
+	this.type = type;
+	this.row = row;
+	this.col = col;
+}
+var tileList = [];
+    tileList.push(new tile("stone", 4, 1));
+    tileList.push(new tile("stone", 4, 2));
+    tileList.push(new tile("stone", 4, 3));
+    tileList.push(new tile("stone", 5, 1));
+    tileList.push(new tile("stone", 5, 2));
+    tileList.push(new tile("stone", 5, 3));
 
 //player
-var keys = [];
-
-/**
- * initialize map
- */
-for(var r = 0; r < gridScale.row; r++) {
-	map[r] = [];
-	for(var c = 0; c < gridScale.col; c++)
-		map[r][c] = "empty";
+var player = {
+	posX: 50,
+	posY: 50,
+	velX: 0,
+	velY: 0,
+	direction: null,
+	maxSpeed: 5
 }
 
-//load obstacles data
-for(var i = 0; i < obsList.length; i++) {
-	var o = obsList[i];
-	if(!o.eliminated)
-		map[o.row][o.col] = "obstacle";
-}
 
-/**
- * load images
- */
+//load images
 var loadImgCount = 0;
-var loadImgTotal = imgToLoad.length;
+var loadImgTotal = imgSrcList.length;
 
 for(var i = 0; i < loadImgTotal; i++) {
-	var img = new Image();
-	img.onload = function() {
+	var image = new Image();
+	image.onload = function() {
 		loadImgCount++;
-		if(loadImgCount == loadImgTotal) {
-			updatePlayer();
-		}
+		if(loadImgCount == loadImgTotal)	//finish loading
+			render();
 	};
-	img.src = "img" + imgToLoad[i];
-	imgReady[i] = img;
+	image.src = "img" + imgSrcList[i];
+	imgReady[i] = image;
 }
 
-/**
- * functions related to drawing
- */
-function draw() {
-	drawDefaultTile();
-	drawGrid();
-	//drawOtherTile();
-	drawObs();
+
+//canvas rendering
+function render() {
+	if(keys[38] && player.velY > -player.maxSpeed) {
+		player.direction = "up";
+		player.velX = 0;
+		player.velY -= settings.movement.deltaSpeed;
+	}
+	if(keys[39] && player.velX < player.maxSpeed) {
+		player.direction = "right";
+		player.velX += settings.movement.deltaSpeed;
+		player.velY = 0;
+	}
+	if(keys[40] && player.velY < player.maxSpeed) {
+		player.direction = "down";
+		player.velX = 0;
+		player.velY += settings.movement.deltaSpeed;
+	}
+	if(keys[37] && player.velX > -player.maxSpeed) {
+		player.direction = "left";
+		player.velX -= settings.movement.deltaSpeed;
+		player.velY = 0;
+	}
+	player.posX += player.velX;
+	player.posY += player.velY;
+	player.velX *= settings.movement.friction;
+	player.velY *= settings.movement.friction;
+
+	//collision test
+	if(isCollision(player.posX, player.posY)) {
+		switch(player.direction) {
+			case "up":
+				player.posY = settings.grid.size * (getRow(player.posY) + 1);
+				player.velY = 0;
+				break;
+			case "right":
+				player.posX = settings.grid.size * getCol(player.posX);
+				player.velX = 0;
+				break;
+			case "down":
+				player.posY = settings.grid.size * getRow(player.posY);
+				player.velY = 0;
+				break;
+			case "left":
+				player.posX = settings.grid.size * (getCol(player.posX) + 1);
+				player.velX = 0;
+				break;
+		}
+	}
+
+	drawBackground();
+	drawTile();
+	drawObstacle();
+	//drawGrid();
+	drawPlayer();
+
+	setTimeout(render, 10);
+}
+
+function drawBackground() {
+	for(var r = 0; r < gridScale.row; r++)
+		for(var c = 0; c < gridScale.col; c++)
+			ctx.drawImage(imgReady[imgIndex.background], getColCoord(c), getRowCoord(r));
 }
 
 function drawGrid() {
@@ -110,151 +190,47 @@ function drawGrid() {
 		ctx.moveTo(getColCoord(c), 0);
 		ctx.lineTo(getColCoord(c), canvas.height);
 	}
-	ctx.lineWidth = 0.5;
-	ctx.setLineDash([2, 2]);
-	ctx.strokeStyle = "rgba(0, 0, 0, 0.5)";
+	ctx.lineWidth = 1;
+	ctx.setLineDash([5, 5]);
+	ctx.strokeStyle = "black";
 	ctx.stroke();
 }
 
-function drawDefaultTile() {
-	for(var r = 0; r < gridScale.row; r++)
-		for(var c = 0; c < gridScale.col; c++)
-			ctx.drawImage(imgReady[imgIndex.defaultTile], getColCoord(c), getRowCoord(r));
+function drawTile() {
+	var tileType, x, y;
+	for(var i = 0; i < tileList.length; i++) {
+		tileType = tileList[i].type;
+		x = getRowCoord(tileList[i].col);
+		y = getRowCoord(tileList[i].row);
+		ctx.drawImage(imgReady[imgIndex.tile[tileType]], x, y);
+	}
 }
 
-function drawObs() {
-	var src, x, y;
+function drawObstacle() {
+	var obsType, x, y;
 	for(var i = 0; i < obsList.length; i++) {
-		src = obsList[i].imgSrc;
+		obsType = obsList[i].type;
 		x = getRowCoord(obsList[i].col);
 		y = getRowCoord(obsList[i].row);
-		ctx.drawImage(imgReady[imgIndex[src]], x, y);
+		ctx.drawImage(imgReady[imgIndex.obstacle[obsType]], x, y);
 	}
 }
 
-/**
- * player movement
- */
-var player = {
-	x: 50, y: 50,
-	velY: 0, velX: 0,
-	direction: null,
-	maxSpeed: 5
-}
+function drawPlayer() {
+	var imgHeight = settings.player.img.height;
+	var playerSize = settings.player.size;
 
-function updatePlayer() {
-	if(keys[38] && player.velY > -player.maxSpeed) {	//key up
-		player.velX = 0;
-		player.velY -= settings.deltaSpeed;
-		player.direction = "up";
-	}
-	if(keys[39] && player.velX < player.maxSpeed) {		//key right
-		player.velX += settings.deltaSpeed;
-		player.velY = 0;
-		player.direction = "right";
-	}
-	if(keys[40] && player.velY < player.maxSpeed) {		//key down
-		player.velX = 0;
-		player.velY += settings.deltaSpeed;
-		player.direction = "down";
-	}
-	if(keys[37] && player.velX > -player.maxSpeed) {	//key left
-		player.velX -= settings.deltaSpeed;
-		player.velY = 0;
-		player.direction = "left";
-	}
-
-	player.velX *= settings.friction;
-	player.velY *= settings.friction;
-	player.x += player.velX;
-	player.y += player.velY;
-
-	//collision test
-	if(isObstacle(player.x, player.y)) {
-		if(player.direction == "left") {
-			player.x = settings.grid.size * (getCol(player.x) + 1);
-			player.velX = 0;
-		}
-		if(player.direction == "up") {
-			player.y = settings.grid.size * (getRow(player.y) + 1);
-			player.velY = 0;
-		}
-		log("collision: top-left");
-	}
-	if(isObstacle(player.x + settings.grid.size - 1, player.y)) {
-		if(player.direction == "right") {
-			player.x = settings.grid.size * (getCol(player.x)) + 0.99;
-			player.velX = 0;
-		}
-		if(player.direction == "up") {
-			player.y = settings.grid.size * (getRow(player.y) + 1);
-			player.velY = 0;
-		}
-		log("collision: top-right");
-	}
-	if(isObstacle(player.x, player.y + settings.grid.size - 1)) {
-		if(player.direction == "left") {
-			player.x = settings.grid.size * (getCol(player.x) + 1);
-			player.velX = 0;
-		}
-		if(player.direction == "down") {
-			player.y = settings.grid.size * (getRow(player.y)) + 0.99;
-			player.velY = 0;
-		}
-		log("collision: bottom-left");
-	}
-	if(isObstacle(player.x + settings.grid.size - 1, player.y + settings.grid.size - 1)) {
-		if(player.direction == "right") {
-			player.x = settings.grid.size * (getCol(player.x)) + 0.99;
-			player.velX = 0;
-		}
-		if(player.direction == "down") {
-			player.y = settings.grid.size * (getRow(player.y)) + 0.99;
-			player.velY = 0;
-		}
-		log("collision: bottom-right");
-	}
-
-	//border test
-	if(player.x + settings.grid.size >= settings.canvas.width) {
-		player.x = settings.canvas.width - settings.grid.size;
-		player.velX = 0;
-		log("boundery: right");
-	}
-	else if(player.x <= 0) {
-		player.x = 0;
-		player.velX = 0;
-		log("boundery: left");
-	}
-	if(player.y + settings.grid.size >= settings.canvas.height) {
-		player.y = settings.canvas.height - settings.grid.size;
-		player.velY = 0;
-		log("boundery: bottom");
-	}
-	else if(player.y <= 0) {
-		player.y = 0;
-		player.velY = 0;
-		log("boundery: top");
-	}
-
-	//draw environment
-	draw();
-
-	//draw player
 	ctx.beginPath();
-	ctx.rect(player.x, player.y, settings.grid.size, settings.grid.size);
+	ctx.drawImage(imgReady[imgIndex["player"]], player.posX, player.posY + playerSize - imgHeight);
+	ctx.rect(player.posX, player.posY, playerSize, playerSize);
 	ctx.lineWidth = 1;
 	ctx.setLineDash([]);
-	ctx.strokeStyle = "rgba(255, 0, 0, 0.5)";
+	ctx.strokeStyle = "red";
 	ctx.stroke();
-	ctx.drawImage(imgReady[imgIndex["player"]],
-		player.x + (settings.grid.size - settings.player.width) / 2,
-		player.y + settings.grid.size - settings.player.height);
-
-	setTimeout(updatePlayer, 10);
 }
 
-//key handler
+
+//event listener
 document.body.addEventListener("keydown", function(e) {
 	keys[e.keyCode] = true;
 });
@@ -262,31 +238,22 @@ document.body.addEventListener("keyup", function(e) {
 	keys[e.keyCode] = false;
 });
 
-/**
- * tools
- */
-function log(str) {
-	document.getElementById("log").innerHTML = str;
-}
-function getRow(y) {
-    var row = Math.floor(y / settings.grid.size);
-    if(row < 0) return 0;
-    if(row > gridScale.row) return (gridScale.row - 1);
-    return row;
-}
- function getCol(x) {
-    var col = Math.floor(x / settings.grid.size);
-    if(col < 0) return 0;
-    if(col > gridScale.col) return (gridScale.col - 1);
-    return col;
-}
+
+//tools
+function getRow(y) {return (Math.floor(y / settings.grid.size)); }
+function getCol(x) {return (Math.floor(x / settings.grid.size)); }
 function getRowCoord(row) {return settings.grid.size * row; }
 function getColCoord(col) {return settings.grid.size * col; }
-function isObstacle(x, y) {
-	if(x <= 0 || y <= 0 || x >= settings.canvas.width || y >= settings.canvas.height)
+
+function isCollision(x, y) {
+	var size = settings.player.size;
+	if(isPassable(x, y) && isPassable(x, y + size) && isPassable(x + size, y) && isPassable(x + size, y + size))
 		return false;
-	var row = Math.floor(y / settings.grid.size);
-	var col = Math.floor(x / settings.grid.size);
-	if(map[row][col] == "obstacle")
-		return true;
+	return true;
+}
+
+function isPassable(x, y) {
+	if(x < 0 || y < 0 || x >= settings.canvas.width || y >= settings.canvas.height)
+		return false;
+	return isPassableMap[getRow(y)][getCol(x)];
 }
