@@ -11,7 +11,8 @@ var settings = {
 		imgHeight: 92,
 		boxSize: 45
 	},
-	bombCountdown: 3000
+	bombCountdown: 1000,
+	bombFlameCountdown: 100,
 }
 
 //canvas
@@ -29,6 +30,7 @@ gridScale.col = settings.canvas.width / settings.gridSize;
 var imgSrcList = [
 	"/bg.png",				//default background image
 	"/item/bomb.png",
+	"/item/bomb_flame.png",
 	"/obs/box1.png",
 	"/obs/box2.png",
 	"/obs/fence.png",
@@ -39,16 +41,17 @@ var imgReady = [];			//images that are loaded will be put here
 var imgIndex = {
 	background: 0,
 	item: {
-		bomb: 1
+		bomb: 1,
+		bombFlame: 2
 	},
 	obstacle: {
-		box1: 2,
-		box2: 3,
-		fence: 4
+		box1: 3,
+		box2: 4,
+		fence: 5
 	},
-	player: 5,
+	player: 6,
 	tile: {
-		grass: 6
+		grass: 7
 	}
 };
 
@@ -63,6 +66,7 @@ addTile("grass", 2, 3);
 
 //bomb
 var bombList = [];
+var bombFlameList = [];
 
 //obstacle
 var obsList = [];
@@ -80,7 +84,11 @@ var player = {
 	posX: 50, posY: 50,
 	velX:  0, velY:  0,
 	direction: null,
-	maxSpeed: 5
+	maxSpeed: 5,
+
+	bombNum: 0,
+	maxBombNum: 5,
+	dropBombCounter: 0
 }
 
 //key status
@@ -125,12 +133,18 @@ function renderCanvas() {
 		player.velX -= settings.movement.deltaSpeed;
 		player.velY = 0;
 	}
+
 	if(keys[32]) {	//put a bomb
-		var r = getRow(player.posY);
-		var c = getCol(player.posX);
-		if(!map.haveBomb(r, c)) {
-			map.setBomb(r, c);
-			bombList.push(new Bomb(r, c));
+		player.dropBombCounter++;
+		if(player.dropBombCounter == 3) {
+			var r = getRow(player.posY);
+			var c = getCol(player.posX);
+			if(player.bombNum < player.maxBombNum && !map.haveBomb(r, c)) {
+				player.bombNum++;
+				map.setBomb(r, c);
+				bombList.push(new Bomb(r, c));
+			}
+			player.dropBombCounter = 0;
 		}
 	}
 
@@ -166,6 +180,7 @@ function renderCanvas() {
 	drawTile();
 	drawGrid();
 	drawBomb();
+	drawBombFlame();
 	drawObstacle();
 	drawPlayer();
 
@@ -208,6 +223,13 @@ function drawBomb() {
 	for(var i = 0; i < bombList.length; i++) {
 		var bomb = bombList[i];
 		ctx.drawImage(imgReady[imgIndex.item["bomb"]], getColCoord(bomb.col), getRowCoord(bomb.row));
+	}
+}
+
+function drawBombFlame() {
+	for(var i = 0; i < bombFlameList.length; i++) {
+		var bf = bombFlameList[i];
+		ctx.drawImage(imgReady[imgIndex.item["bombFlame"]], getColCoord(bf.col), getRowCoord(bf.row));
 	}
 }
 
@@ -265,9 +287,21 @@ function Bomb(row, col) {
 	this.col = col;
 	var _this = this;
 	setTimeout(function () {
-		bombList.shift();
+		player.bombNum--;
 		map.delBomb(_this.row, _this.col);
+		bombList.shift();
+		bombFlame(_this.row, _this.col);
 	}, settings.bombCountdown);
+}
+
+function BombFlame(row, col) {
+	this.row = row;
+	this.col = col;
+	var _this = this;
+	setTimeout(function () {
+		map.delBombFlame(_this.row, _this.col);
+		bombFlameList.shift();
+	}, settings.bombFlameCountdown);
 }
 
 function Obs(type, row, col, destroyable) {
@@ -285,7 +319,11 @@ function MapObj() {
 	for(var row = 0; row < gridScale.row; row++) {
 		this.map[row] = [];
 		for(var col = 0; col < gridScale.col; col++)
-			this.map[row][col] = {passable: true, haveBomb: false};
+			this.map[row][col] = {
+				passable: true,
+				haveBomb: false,
+				haveBombFlame: false
+			};
 	}
 
 	//load obstacles
@@ -298,31 +336,54 @@ function MapObj() {
 
 MapObj.prototype.isCollision = function(x, y) {
 	var halfBoxSize = settings.player.boxSize / 2;
-	if(this.isPassable(x - halfBoxSize, y + halfBoxSize) &&
-		this.isPassable(x + halfBoxSize, y + halfBoxSize) &&
-		this.isPassable(x + halfBoxSize, y - halfBoxSize) &&
-		this.isPassable(x - halfBoxSize, y - halfBoxSize))
+	if(this.isPassableByPos(x - halfBoxSize, y + halfBoxSize) &&
+		this.isPassableByPos(x + halfBoxSize, y + halfBoxSize) &&
+		this.isPassableByPos(x + halfBoxSize, y - halfBoxSize) &&
+		this.isPassableByPos(x - halfBoxSize, y - halfBoxSize))
 		return false;
 	return true;
 };
 
-MapObj.prototype.isPassable = function(x, y) {
+MapObj.prototype.isPassableByPos = function(x, y) {
 	if(x < 0 || y < 0 || x >= settings.canvas.width || y >= settings.canvas.height)
 		return false;
 	return this.map[getRow(y)][getCol(x)].passable;
 };
+MapObj.prototype.isPassableByGrid = function(row, col) {return this.map[row][col].passable; };
+MapObj.prototype.haveBomb = function(row, col) {return this.map[row][col].haveBomb; };
+MapObj.prototype.setBomb = function(row, col) {this.map[row][col].haveBomb = true; };
+MapObj.prototype.delBomb = function(row, col) {this.map[row][col].haveBomb = false; };
+MapObj.prototype.setBombFlame = function(row, col) {this.map[row][col].haveBombFlame = true; };
+MapObj.prototype.delBombFlame = function(row, col) {this.map[row][col].haveBombFlame = false; };
 
-MapObj.prototype.haveBomb = function(row, col) {
-	return this.map[row][col].haveBomb;
-};
-
-MapObj.prototype.setBomb = function(row, col) {
-	this.map[row][col].haveBomb = true;
-};
-
-MapObj.prototype.delBomb = function(row, col) {
-	this.map[row][col].haveBomb = false;
-};
+//bomb flame
+function bombFlame(row, col) {
+	var row_now, col_now;
+	for(row_now = row - 1, col_now = col; row_now >= 0; row_now--) {			//up
+		if(!map.isPassableByGrid(row_now, col_now))
+			break;
+		map.setBombFlame(row_now, col_now);
+		bombFlameList.push(new BombFlame(row_now, col_now));
+	}
+	for(row_now = row, col_now = col + 1; col_now < gridScale.col; col_now++) {	//right
+		if(!map.isPassableByGrid(row_now, col_now))
+			break;
+		map.setBombFlame(row_now, col_now);
+		bombFlameList.push(new BombFlame(row_now, col_now));
+	}
+	for(row_now = row + 1, col_now = col; row_now < gridScale.row; row_now++) {	//down
+		if(!map.isPassableByGrid(row_now, col_now))
+			break;
+		map.setBombFlame(row_now, col_now);
+		bombFlameList.push(new BombFlame(row_now, col_now));
+	}
+	for(row_now = row, col_now = col - 1; col_now>= 0; col_now--) {				//left
+		if(!map.isPassableByGrid(row_now, col_now))
+			break;
+		map.setBombFlame(row_now, col_now);
+		bombFlameList.push(new BombFlame(row_now, col_now));
+	}
+}
 
 //tools
 function addTile(type, row, col) {
