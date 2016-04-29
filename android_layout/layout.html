@@ -1,0 +1,165 @@
+<meta charset="utf8">
+<link rel="stylesheet" href="css/reset.css">
+<link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css">
+<link rel="stylesheet" href="css/style.css">
+<title>Layout</title>
+
+<div id="screen">
+	<div id="phoneStatusSec"></div>
+	<div id="headSec">
+		<a href="javascript:showMenu()"><img id="menuBtn"src="img/menuBtn.png"></a>
+		<span id="appTitle">Lunch Decider</span>
+	</div>
+	<div class="antiShad">
+		<div class="shadow"></div>
+	</div>
+	<div id="contentSec">
+		<div id="menuSec">
+			<ul id="menu">
+				<li><a onclick="toScreen(0)"><span><i class="fa fa-cutlery"></i>Lunch Decider</span></a></li>
+				<li><a onclick="toScreen(1)"><span><i class="fa fa-user-plus"></i>Add New Restaurants</span></a></li>
+				<li><a onclick="toScreen(2)"><span><i class="fa fa-bug"></i>Feedback</span></a></li>
+			</ul>
+			<div class="hrBorder"></div>
+		</div>
+		<!-- BEGIN OF SCREEN 1 -->
+		<div id ="mainSec1" class="mainSec">
+			<div class="card">
+				<span class="cardTitle"><i class="fa fa-question faTitle"></i>What's Lunch Decider?</span>
+				<p>Lunch Decider is an App featuring machine learning tech to help you decide what to eat.</p>
+			</div>
+			<div class="card">
+				<span class="cardTitle"><i class="fa fa-dollar faTitle"></i>Budget Condition</span>
+				<input type="radio" name="conB" id="conB0" value="vCB1"><label for="conB0">Less than 100</label>
+				<input type="radio" name="conB" id="conB1" value="vCB2"><label for="conB1">100 to 150</label>
+				<input type="radio" name="conB" id="conB2" value="vCB3"><label for="conB2">More than 150</label>
+				<div style="clear:both;"></div>
+			</div>
+			<div class="card">
+				<span class="cardTitle"><i class="fa fa-cloud faTitle"></i>Weather Condition</span>
+				<input type="radio" name="conW" id="conW0" value="vCW1"><label for="conW0">Hot</label>
+				<input type="radio" name="conW" id="conW1" value="vCW2"><label for="conW1">Cold</label>
+				<input type="radio" name="conW" id="conW2" value="vCW3"><label for="conW2">Rainy</label>
+				<div style="clear:both;"></div>
+			</div>
+			<a href="javascript:search()" class="btnSend">Search</a>
+		</div>
+		<!-- END OF SCREEN 1 -->
+		<!-- BEGIN OF SCREEN 2 -->
+		<div id ="mainSec2" class="mainSec">
+			<div class="card">
+				<span class="cardTitle"><i class="fa fa-user-plus faTitle"></i>Add New Restaurants</span>
+				<p>Enter following data then press add button.</p>
+			</div>
+			<div class="card">
+				<span class="cardTitle"><i class="fa fa-cutlery faTitle"></i>Restaurant Name</span>
+				<input type="text" id="ArName" placeholder="Type in the restaurant name here.">
+			</div>
+			<div class="card">
+				<span class="cardTitle"><i class="fa fa-dollar faTitle"></i>Budget Condition</span>
+				<input type="radio" name="AconB" id="AconB0" value="AvCB1"><label for="AconB0">Less than 100</label>
+				<input type="radio" name="AconB" id="AconB1" value="AvCB2"><label for="AconB1">100 to 150</label>
+				<input type="radio" name="AconB" id="AconB2" value="AvCB3"><label for="AconB2">More than 150</label>
+				<div style="clear:both;"></div>
+			</div>
+			<div class="card">
+				<span class="cardTitle"><i class="fa fa-cloud faTitle"></i>Weather Condition</span>
+				<input type="radio" name="AconW" id="AconW0" value="vCW1"><label for="AconW0">Hot</label>
+				<input type="radio" name="AconW" id="AconW1" value="vCW2"><label for="AconW1">Cold</label>
+				<input type="radio" name="AconW" id="AconW2" value="vCW3"><label for="AconW2">Rainy</label>
+				<div style="clear:both;"></div>
+			</div>
+			<a href="javascript:addRestaurant()" class="btnSend">Add</a>
+		</div>
+		<!-- END OF SCREEN 2 -->
+		<!-- BEGIN OF SCREEN 3 -->
+		<div id ="mainSec3" class="mainSec">
+			<div class="card">
+				<span class="cardTitle"><i class="fa fa-bug faTitle"></i>Feedback</span>
+				<p>Please tell us what you thought.</p>
+				<textarea id="feedback" placeholder="Type in here."></textarea>
+			</div>
+			<a href="javascript:fFeedback()" class="btnSend">Send the Feedback</a>
+		</div>
+		<!-- END OF SCREEN 3 -->
+		<!-- BEGIN OF RESULT PAGE -->
+		<div id ="mainSecResult" class="mainSec">
+			<div class="card">
+				<span class="cardTitle"><i class="fa fa-heart faTitle"></i>Result</span>
+				<span id="result"></span>
+			</div>
+			<a href="javascript:toScreen(0)" class="btnSend">Return</a>
+		</div>
+		<!-- END OF RESULT PAGE -->
+	</div>
+</div>
+
+<script>
+/* hide and show screen */
+var screenList = document.getElementsByClassName('mainSec');
+for(var i = 0; i < 4; i++)
+	screenList[i].style.display = 'none';
+
+var screenDisplayed = 0;
+screenList[screenDisplayed].style.display = 'block';
+
+function toScreen(s) {
+	screenList[screenDisplayed].style.display = 'none';
+	screenList[s].style.display = 'block';
+	screenDisplayed = s;
+	if(menuShown) showMenu();
+}
+
+/* toggle menu */
+var menuShown = false;
+var resultPageShown = false;
+var content = document.getElementById('contentSec');
+function showMenu() {	
+	if(!menuShown) {
+		content.style.left = 0;
+		menuShown = true;
+	} else {
+		content.style.left = -280;
+		menuShown = false;
+	}
+}
+
+/* display phone time */
+function addZero(i) {
+	if(i < 10) return ('0' + i);
+	else return i;
+}
+var getTime = new Date(); 
+document.getElementById('phoneStatusSec').innerHTML = addZero(getTime.getHours()) + ':' + addZero(getTime.getMinutes());
+
+/* search */
+var conB = document.getElementsByName('conB');
+var conW = document.getElementsByName('conW');
+function search() {
+	var input = [];
+	toScreen(3);
+	for(var i = 0; i < 3; i++) if(conB[i].checked) input.push(i);
+	for(var i = 0; i < 3; i++) if(conW[i].checked) input.push(i);
+	document.getElementById('result').innerHTML = '<p>Buget: ' + input[0] + '</p><p>Weather: ' + input[1] + '</p>';
+}
+
+/* add restaurant */
+var ArName = document.getElementById('ArName');
+var AconB = document.getElementsByName('AconB');
+var AconW = document.getElementsByName('AconW');
+function addRestaurant() {
+	var output = [];
+	output.push(ArName.value);
+	for(var i = 0; i < 3; i++) if(AconB[i].checked) output.push(i);
+	for(var i = 0; i < 3; i++) if(AconW[i].checked) output.push(i);
+	alert('add: ' + output);
+}
+
+/* feedback */
+var feedback = document.getElementById('feedback');
+function fFeedback() {
+	var output = [];
+	output.push(feedback.value);
+	alert('feedback: ' + output);
+}
+</script>
