@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf8">
+	<title>Guitar Chord Chart</title>
+	<link rel="stylesheet" type="text/css" href="css/reset.css">
+	<style>
+	* {
+		outline: 0;
+	}
+	body {
+		background: url('img/bg.jpg') no-repeat fixed;
+		-webkit-background-size: cover;
+		   -moz-background-size: cover;
+		     -o-background-size: cover;
+		background-size: cover;
+		height: 1000px;
+	}
+	
+	/* 140 100 660 */
+	#container {
+		position: relative;
+		width: 900px;
+		margin: 30px auto;
+	}
+	nav {
+		position: absolute;
+		left: 0;
+		width: 140px;
+	}
+	.nav_title {
+		color: #FFF;
+		font: 20pt Verdana;
+		line-height: 20pt;
+		width: 140px;
+		margin: 40px 0 15px;
+	}
+	nav ul li a {
+		display: block;
+		color: #FFF;
+		font: 14pt Verdana;
+		line-height: 44px;
+		text-align: center;
+		text-decoration: none;
+		width: 140px;
+		height: 44px;
+		border: 1px solid transparent;
+		border-radius: 2px;
+		margin: 8px 0;
+	}
+	nav ul li a:hover {
+		border: 1px solid rgba(255, 255, 255, 0.5);
+		cursor: pointer;
+	}
+	.nav_focus, .nav_focus:hover {
+		background: #E04E61;
+		border: 1px solid transparent;
+	}
+	#content {
+		margin-left: 240px;
+	}
+	#chord_name_display {
+		display: block;
+		color: #FFF;
+		font: 28pt Verdana;
+		line-height: 20pt;
+		padding: 40px 0 25px 20px;
+		border-bottom: 1px solid rgba(255, 255, 255, 0.5);
+	}
+	canvas {
+		color: #FFF;
+		font-size: 24pt;
+	}
+	</style>
+</head>
+
+<body>
+<div style="display:none;"><img src="img/koko.png" id="koko"></div>
+<div id="container">
+	<nav>
+		<div>
+			<p class="nav_title">Root</p>
+			<ul>
+				<li><a  onclick="setRoot(this, 'C');" id="default_root">C</a></li>
+				<li><a  onclick="setRoot(this, 'D');">D</a></li>
+				<li><a  onclick="setRoot(this, 'E');">E</a></li>
+				<li><a  onclick="setRoot(this, 'F');">F</a></li>
+				<li><a  onclick="setRoot(this, 'G');">G</a></li>
+				<li><a  onclick="setRoot(this, 'A');">A</a></li>
+				<li><a  onclick="setRoot(this, 'B');">B</a></li>
+			</ul>
+		</div>
+		<div>
+			<p class="nav_title">Type</p>
+			<ul>
+				<li><a  onclick="setType(this, 'maj')" id="default_chord">maj</a></li>
+				<li><a  onclick="setType(this, 'm')">m</a></li>
+				<li><a  onclick="setType(this, 'maj7')">maj7</a></li>
+				<li><a  onclick="setType(this, '7')">7</a></li>
+				<li><a  onclick="setType(this, 'm7')">m7</a></li>
+				<!--
+				<button onclick="setType('sus2')">sus2</button>
+				<button onclick="setType('sus4')">sus4</button>
+				<button onclick="setType('add9')">add9(add2)</button>
+				-->
+			</ul>
+		</div>
+	</nav>
+	<div id="content">
+		<p id="chord_name_display">Cmaj</p>
+		<canvas id="canvas" width="660" height="395">抱歉 QQ 你的瀏覽器不支援 canvas</canvas>
+	</div>
+</div>
+
+<script src="chord_data.js"></script>
+<script>
+var coord_chordName_x = 55;
+var coord_chordName_y = 35;
+
+var coord_string_start_X = 60;
+var coord_string_start_Y = 80;
+var coord_string_end_X = 620;
+var coord_string_end_Y = 315;
+var padding_string_X = (coord_string_end_X - coord_string_start_X) / 4;//140
+var padding_string_Y = (coord_string_end_Y - coord_string_start_Y) / 5;//55
+
+var offset_notation = 40;
+var point_radius = 25;
+
+var font_point = '30px Verdana';
+var font_notation = '26px Verdana';
+var color_string = '#E04E61';
+var color_divider = '#333';
+var color_point_background = '#E04E61';
+var color_point_font = '#FFF';
+var color_notation = '#FFF';
+var line_width_string = 3;
+var line_width_divider = 3;
+var dash_amount_string = 5;
+
+var c = document.getElementById('canvas');
+var ctx = c.getContext('2d');
+ctx.textBaseline= 'middle'; 
+
+var fret_pressed;
+var arr_notation = [
+	['E ', 'F ', 'F#', 'G '], 
+	['B ', 'C ', 'C#', 'D '], 
+	['G ', 'G#', 'A ', 'Bb', 'B'], 
+	['D ', 'Eb', 'E ', 'F ', 'G'], 
+	['A ', 'Bb', 'B ', 'C '], 
+	['E ', 'F ', 'F#', 'G ']
+];
+
+var target;
+var target_root = 'C';
+var target_chord = 'maj';
+
+var nav_selected_root  = document.getElementById('default_root');
+var nav_selected_chord  = document.getElementById('default_chord');
+nav_selected_root.className = 'nav_focus';
+nav_selected_chord.className = 'nav_focus';
+
+function drawChord() {
+	target = target_root + target_chord;
+	draw(chordMap.get(target));
+}
+
+function color_nav_root_item(target) {
+	nav_selected_root.className = '';
+	target.className = 'nav_focus';
+	nav_selected_root = target;
+}
+
+function color_nav_chord_item(target) {
+	nav_selected_chord.className = '';
+	target.className = 'nav_focus';
+	nav_selected_chord = target;
+}
+
+function setRoot(item, root) {
+	target_root = root;
+	color_nav_root_item(item);
+	drawChord();
+}
+
+function setType(item, chord) {
+	target_chord = chord;
+	color_nav_chord_item(item);
+	drawChord();
+}
+
+/*
+	chordName: 和弦名稱
+	fingerArray: 左手手指按的位置, 次序為P1234
+	stringArray: 各弦彈奏的情況, 0: 不彈
+*/
+function draw(arr_input) {
+	if(arr_input[0] == 'koko') {
+		ctx.clearRect(0, 0, c.width, c.height);
+		document.getElementById('chord_name_display').innerHTML = arr_input[1];
+		
+		var img = document.getElementById("koko");
+		ctx.drawImage(img, (c.width - img.width) / 2, 50);
+		return;
+	}
+	var chordName = arr_input[0];
+	var arr_string = arr_input[1];
+	var arr_finger = arr_input[2];
+	ctx.clearRect(0, 0, c.width, c.height);
+	init_fret_pressed();
+	
+	document.getElementById('chord_name_display').innerHTML = chordName;
+	
+	drawString(arr_string);
+	drawDivider();
+	
+	//draw point
+	for(var i = 0; i < 6; i++) {
+		if(arr_finger[i].length == 0) continue;
+		for(var j = 0; j < arr_finger[i].length; j++) {
+			var string = parseInt(arr_finger[i][j] / 10);
+			var fret = arr_finger[i][j] % 10;
+			fret_pressed[string - 1] = fret;
+			drawPoint(i, string, fret);
+		}
+	}
+	
+	//draw notation
+	ctx.beginPath();
+	ctx.font = font_notation;
+	ctx.fillStyle = color_notation;
+	for(var i = 0; i < 6; i++) {
+		ctx.textAlign = 'left';
+		ctx.fillText(arr_notation[i][fret_pressed[i]], coord_string_start_X - offset_notation, coord_string_start_Y + padding_string_Y * i);
+	}
+}
+
+function drawString(arr_string) {
+	ctx.lineWidth = line_width_string;
+
+	var coord_Y = coord_string_start_Y;
+	for(var i = 0; i < 6; i++) {
+		ctx.beginPath();
+		ctx.strokeStyle = color_string;
+		
+		if(arr_string[i] == 1)
+			ctx.setLineDash([]);
+		else if(arr_string[i] == 0)
+			ctx.setLineDash([dash_amount_string]);
+		else {
+			ctx.setLineDash([]);
+			ctx.strokeStyle = 'rgba(0, 0, 0, 0.1)';
+		}
+		
+		ctx.moveTo(coord_string_start_X, coord_Y);
+		ctx.lineTo(coord_string_end_X, coord_Y);
+		ctx.stroke();
+		coord_Y += padding_string_Y;
+	}
+}
+
+function drawDivider() {
+	ctx.beginPath();
+	ctx.lineWidth = line_width_divider;
+	ctx.setLineDash([]);
+	ctx.strokeStyle = color_divider;
+	for(var i = 1; i <= 3; i++) {
+		ctx.moveTo(coord_string_start_X + padding_string_X * i, coord_string_start_Y - padding_string_Y);
+		ctx.lineTo(coord_string_start_X + padding_string_X * i, coord_string_end_Y + padding_string_Y);
+	}
+	ctx.stroke();
+}
+
+function drawPoint(finger, string, fret) {//finger(0, 1, 2, 3) = (P, 1, 2, 3)
+	ctx.beginPath();
+	ctx.fillStyle = color_point_background;
+	ctx.arc(coord_string_start_X + padding_string_X * (fret - 0.5), 
+			coord_string_start_Y + padding_string_Y * (string - 1), point_radius , 0 , 2 * Math.PI);
+	ctx.fill();
+
+	if(finger != 5) {
+		ctx.beginPath();
+		ctx.font = font_point;
+		ctx.fillStyle = color_point_font;
+		ctx.textAlign = 'center';
+		ctx.fillText(finger, coord_string_start_X + padding_string_X * (fret - 0.5), 
+							 coord_string_start_Y + padding_string_Y * (string - 1));
+	}
+}
+
+function init_fret_pressed() {
+	fret_pressed = [];
+	for(var i = 0; i < 6; i++) fret_pressed[i] = 0;
+}
+
+drawChord();
+</script>
+</body>
+</html>
