@@ -1,0 +1,142 @@
+<!--
+	mobile viewport?
+	eventListener: bubbling? capturing?
+-->
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf8">
+	<meta name="viewport" content="width=device-width">
+	<title>Canvas Experiment</title>
+	<style>
+	body {
+		position: fixed;
+		width: 100%;
+		height: 100%;
+		padding: 0;
+		margin: 0;
+	}
+	canvas {
+		background: url(./bg.jpg) center center;
+		background-size: cover;
+	}
+	</style>
+</head>
+
+<body>
+	<canvas id="canvas" height="500">你的瀏覽器不支援HTML5 Canvas。</canvas>
+</body>
+
+<script>
+var canvas = document.getElementById("canvas");
+var ctx = canvas.getContext("2d");
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
+//customized variables
+var orbitNum = 200;
+var orbitPeriod = 200; //seconds per round
+var orbitRadius = {min: canvas.height / 2, max: canvas.width};
+var distanceThreshold = 20000;
+
+//orbit object
+function orbit() {
+	do {
+		this.centerX = (Math.random() * 2 * canvas.width) - (canvas.width / 2);
+		this.centerY = (Math.random() * 2 * canvas.height) - (canvas.height / 2);
+	} while(((0 <= this.centerX) && (this.centerX <= canvas.width)) ||
+	        ((0 <= this.centerY) && (this.centerY <= canvas.height)));
+	this.degree = Math.random() * 2 * Math.PI;
+	this.radius = Math.random() * (orbitRadius.max - orbitRadius.min) + orbitRadius.min;
+	this.posX = 0;
+	this.posY = 0;
+	this.circleSize = 1.25 + Math.random() * 2.25;
+}
+
+//initialization
+var mousePos;
+var orbits = [];
+function initCanvas() {
+	for(var i = 0; i < orbitNum; i++)
+		orbits[i] = new orbit();
+	mousePos = {x: 0, y: 0};
+	window.requestAnimationFrame(drawCanvas);
+}
+
+function drawCanvas() {
+	ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+	//draw orbits
+	for(var i = 0; i < orbitNum; i++) {
+		orbits[i].posX = orbits[i].centerX + orbits[i].radius * Math.cos(orbits[i].degree);
+		orbits[i].posY = orbits[i].centerY + orbits[i].radius * Math.sin(orbits[i].degree);
+		drawCircle(orbits[i]);
+		orbits[i].degree += Math.PI / (orbitPeriod * 30); //assume 60 frames per second
+	}
+
+	//draw lines
+	for(var i = orbitNum - 1; i > 0; i--) {
+		for(var j = i - 1; j >= 0; j--) {
+			var distance = (orbits[i].posX - orbits[j].posX) * (orbits[i].posX - orbits[j].posX) + 
+			               (orbits[i].posY - orbits[j].posY) * (orbits[i].posY - orbits[j].posY);
+
+			var alpha;
+			if(distance > distanceThreshold) alpha = 0;
+			else alpha = 1 - distance / distanceThreshold;
+
+			ctx.strokeStyle = "rgba(255, 255, 255, " + alpha + ")";
+			ctx.beginPath();
+			ctx.moveTo(orbits[i].posX, orbits[i].posY);
+			ctx.lineTo(orbits[j].posX, orbits[j].posY);
+			ctx.stroke();
+		}
+	}
+	drawMouse(mousePos);
+	window.requestAnimationFrame(drawCanvas);
+}
+
+function drawCircle(orbit) {
+	var alpha = Math.cos(orbit.degree * 360) / 2 + 0.5;
+	ctx.fillStyle = "rgba(255, 255, 255, " + alpha + ")";
+	ctx.beginPath();
+	ctx.arc(orbit.posX, orbit.posY, orbit.circleSize, 0, 2 * Math.PI);
+	ctx.fill();
+}
+
+function drawMouse(mousePos) {
+	for(var i = 0; i < orbitNum; i++) {
+		var distance = (orbits[i].posX - mousePos.x) * (orbits[i].posX - mousePos.x) + 
+		               (orbits[i].posY - mousePos.y) * (orbits[i].posY - mousePos.y);
+		var alpha;
+		if(distance > distanceThreshold) alpha = 0;
+		else alpha = 1 - distance / distanceThreshold;
+
+		ctx.strokeStyle = "rgba(255, 255, 255, " + alpha + ")";
+		ctx.beginPath();
+		ctx.moveTo(orbits[i].posX, orbits[i].posY);
+		ctx.lineTo(mousePos.x, mousePos.y);
+		ctx.stroke();
+	}
+}
+
+function getMousePos(canvas, evt) {
+	var rect = canvas.getBoundingClientRect();
+	return {
+		x: evt.clientX - rect.left,
+		y: evt.clientY - rect.top
+	};
+}
+
+canvas.addEventListener("mousemove", function(evt) {
+	mousePos = getMousePos(canvas, evt);
+	drawMouse(mousePos);
+});
+
+window.addEventListener("resize", function() {
+	canvas.width  = window.innerWidth;
+	canvas.height = window.innerHeight;
+});
+
+initCanvas();
+</script>
+</html>
